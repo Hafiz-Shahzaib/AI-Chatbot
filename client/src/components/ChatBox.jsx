@@ -1,8 +1,9 @@
-import axios from 'axios'
+// import axios from 'axios'
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppContext } from '../context/appContext'
 import { assets } from '../assets/assets'
 import Message from './Message'
+import toast from 'react-hot-toast'
 // import { axios } from 'axios';
 
 const ChatBox = () => {
