@@ -39,10 +39,12 @@ const ChatBox = () => {
           setUser(prev => ({...prev, credits: prev.credits - 1}))
         }
       }else{
+        console.warn("Image/chat API returned an error:", data)
         toast.error(data.message)
         setPrompt(promptCopy)
       }
     } catch (error) {
+      console.error("Chat request failed:", error.response?.status, error.response?.data || error.message)
       toast.error(error.message)
     }finally{
       setPrompt('')

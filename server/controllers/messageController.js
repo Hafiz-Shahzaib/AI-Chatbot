@@ -44,6 +44,8 @@ export const textMessageController = async (req, res) => {
 
 // Image Generation Message Controller
 export const imageMessageController = async (req, res) => {
+   let imageStep = "ImageKit AI image generation"
+   console.info("Image generation route received a request")
    try {
     const userId = req.user._id
     //Check credits
@@ -65,15 +67,17 @@ export const imageMessageController = async (req, res) => {
         const encodedPrompt = encodeURIComponent(prompt)
 
         // Construct ImageKit AI generation URL
-        const generatedImageUrl = `${process.env.IMAGEKIT_URL_ENDPOINT}/ik-genimg-prompt-${encodedPrompt}/quickgpt/${Date.now()}.png?tr=w-800, h-800`;
+        const generatedImageUrl = `${process.env.IMAGEKIT_URL_ENDPOINT}/ik-genimg-prompt-${encodedPrompt}/quickgpt/${Date.now()}.png?tr=w-800,h-800`;
 
         // Trigger generation by fetching from ImageKit
-        const aiImageResponse = await axios.get(generatedImageUrl, {responseType: "arraybuffer"})
+        const signedImageUrl = imagekit.url({ src: generatedImageUrl, urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT, signed: true, expireSeconds: 300 })
+        const aiImageResponse = await axios.get(signedImageUrl, {responseType: "arraybuffer"})
 
         // Convert to Base64
         const base64Image = `data:image/png;base64,${Buffer.from(aiImageResponse.data,"binary").toString('base64')}`;
 
         //Upload to ImageKit Media Library
+        imageStep = "ImageKit media upload"
         const uploadResponse = await imagekit.upload({
             file: base64Image,
             fileName: `${Date.now()}.png`,
@@ -96,6 +100,14 @@ export const imageMessageController = async (req, res) => {
             await User.updateOne({_id: userId}, {$inc: {credits: -2}})
 
    } catch (error) {
-        res.json({success: false, message: error.message})
+        console.error("Image generation failed:", error.response?.status, Buffer.isBuffer(error.response?.data) ? error.response.data.toString("utf8").slice(0, 1000) : error.response?.data || error.message, error.response?.headers?.["ik-error"], error.response?.headers?.["x-ik-requestid"])
+        const debug = process.env.IMAGEKIT_DEBUG === "true" ? {
+            failedStep: imageStep,
+            upstreamStatus: error.response?.status,
+            upstreamBody: Buffer.isBuffer(error.response?.data) ? error.response.data.toString("utf8").slice(0, 1000) : error.response?.data,
+            ikError: error.response?.headers?.["ik-error"],
+            requestId: error.response?.headers?.["x-ik-requestid"]
+        } : undefined
+        res.json({success: false, message: error.message, ...(debug && {debug})})
    } 
 }
