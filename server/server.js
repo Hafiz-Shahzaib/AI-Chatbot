@@ -15,6 +15,12 @@ await connectDB()
 // Stripe Webhooks
 // app.post('/api/stripe', express.raw({type: 'application/json'}), stripeWebhooks)
 
+app.use(cors({
+//   origin: "http://localhost:5173",
+  origin: "https://ai-chatbot-eosin-sigma.vercel.app",
+  credentials: true
+}));
+
 // Middleware
 app.use(cors())
 app.use(express.json())
